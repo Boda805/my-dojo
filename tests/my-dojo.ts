@@ -38,7 +38,7 @@ describe('my_dojo', async() => {
       );
 
     await program.methods
-      .addDojo("Next Level Combat", "Woodbury, MN", "No-gi 10th planet subsidiary")
+      .addDojo("Top Tier Gym", "USA", "Best gym in the states")
       .accounts({
         dojoOwner: provider.wallet.publicKey,
         myDojo: myDojoPDA,
@@ -46,7 +46,11 @@ describe('my_dojo', async() => {
       })
       .rpc();
 
-    expect((await program.account.myDojo.fetch(myDojoPDA)).name).to.equal("Next Level Combat");
+    expect((await program.account.myDojo.fetch(myDojoPDA)).name).to.equal("Top Tier Gym");
     expect((await program.account.myDojo.fetch(myDojoPDA)).bump).to.equal(bump);
   });
+
+  it('Mint a black belt for dojo owner', async () => {
+
+  })
 });
