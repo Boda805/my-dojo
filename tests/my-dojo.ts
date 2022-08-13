@@ -37,9 +37,6 @@ describe('my_dojo', async() => {
         program.programId
       );
 
-    console.log("myDojoPDA address: " + myDojoPDA);  
-    console.log("bump: " + bump);
-
     await program.methods
       .addDojo("Next Level Combat", "Woodbury, MN", "No-gi 10th planet subsidiary")
       .accounts({
@@ -50,15 +47,6 @@ describe('my_dojo', async() => {
       .rpc();
 
     expect((await program.account.myDojo.fetch(myDojoPDA)).name).to.equal("Next Level Combat");
-
-    // await program.methods
-    //   .changeUserName("tom")
-    //   .accounts({
-    //     user: provider.wallet.publicKey,
-    //     userStats: userStatsPDA
-    //   })
-    //   .rpc();
-
-    // expect((await program.account.userStats.fetch(userStatsPDA)).name).to.equal("tom");
+    expect((await program.account.myDojo.fetch(myDojoPDA)).bump).to.equal(bump);
   });
 });
