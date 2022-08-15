@@ -44,9 +44,9 @@ pub mod my_dojo {
 
     pub fn mint_black_belt(
         ctx: Context<MintBlackBelt>,
-        creator_key: Pubkey,
+        // creator_key: Pubkey,
         uri: String,
-        title: String,
+        name: String,
     ) -> Result<()> {
         msg!("Initializing Mint NFT");
         let cpi_accounts = MintTo {
@@ -72,19 +72,19 @@ pub mod my_dojo {
             ctx.accounts.rent.to_account_info(),
         ];
         msg!("Account Info Assigned");
-        let creator = vec![
-            mpl_token_metadata::state::Creator {
-                address: creator_key,
-                verified: false,
-                share: 100,
-            },
-            mpl_token_metadata::state::Creator {
-                address: ctx.accounts.mint_authority.key(),
-                verified: false,
-                share: 0,
-            },
-        ];
-        msg!("Creator Assigned");
+        // let creator = vec![
+        //     mpl_token_metadata::state::Creator {
+        //         address: creator_key,
+        //         verified: false,
+        //         share: 100,
+        //     },
+        //     mpl_token_metadata::state::Creator {
+        //         address: ctx.accounts.mint_authority.key(),
+        //         verified: false,
+        //         share: 0,
+        //     },
+        // ];
+        // msg!("Creator Assigned");
         let symbol = std::string::ToString::to_string("symb");
         invoke(
             &create_metadata_accounts_v2(
@@ -94,10 +94,10 @@ pub mod my_dojo {
                 ctx.accounts.mint_authority.key(),
                 ctx.accounts.payer.key(),
                 ctx.accounts.payer.key(),
-                title,
+                name + " - Black Belt",
                 symbol,
                 uri,
-                Some(creator),
+                None,
                 1,
                 true,
                 false,
@@ -106,7 +106,7 @@ pub mod my_dojo {
             ),
             account_info.as_slice(),
         )?;
-        msg!("Metadata Account Created !!!");
+        msg!("Metadata Account Created");
 
         Ok(())
     }
