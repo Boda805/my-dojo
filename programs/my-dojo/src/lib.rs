@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_spl::token;
 use anchor_spl::token::{MintTo, Token};
-use mpl_token_metadata::instruction::{create_master_edition_v3, create_metadata_accounts_v2};
+use mpl_token_metadata::instruction::{create_metadata_accounts_v2};
 
 
 declare_id!("vrQ91QxPGytFvwMbnjj1DRwMnauD1EQYRVFuYDbhz3J");
@@ -107,32 +107,7 @@ pub mod my_dojo {
             account_info.as_slice(),
         )?;
         msg!("Metadata Account Created !!!");
-        let master_edition_infos = vec![
-            ctx.accounts.master_edition.to_account_info(),
-            ctx.accounts.mint.to_account_info(),
-            ctx.accounts.mint_authority.to_account_info(),
-            ctx.accounts.payer.to_account_info(),
-            ctx.accounts.metadata.to_account_info(),
-            ctx.accounts.token_metadata_program.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
-            ctx.accounts.rent.to_account_info(),
-        ];
-        msg!("Master Edition Account Infos Assigned");
-        invoke(
-            &create_master_edition_v3(
-                ctx.accounts.token_metadata_program.key(),
-                ctx.accounts.master_edition.key(),
-                ctx.accounts.mint.key(),
-                ctx.accounts.payer.key(),
-                ctx.accounts.mint_authority.key(),
-                ctx.accounts.metadata.key(),
-                ctx.accounts.payer.key(),
-                Some(0),
-            ),
-            master_edition_infos.as_slice(),
-        )?;
-        msg!("Master Edition Nft Minted !!!");
+
         Ok(())
     }
     
@@ -157,7 +132,6 @@ pub struct AddDojo<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
 #[derive(Accounts)]
 pub struct MintBlackBelt<'info> {
     #[account(mut)]
@@ -181,21 +155,7 @@ pub struct MintBlackBelt<'info> {
     pub system_program: Program<'info, System>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub rent: AccountInfo<'info>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    #[account(mut)]
-    pub master_edition: UncheckedAccount<'info>,
 }
-
-// #[derive(Accounts)]
-// pub struct MintBlackBelt<'info> {
-//     pub payer: AccountInfo<'info>,
-//     pub associated_token: AccountInfo<'info>,
-//     pub authority: AccountInfo<'info>,
-//     pub mint: AccountInfo<'info>,
-//     pub system_program: AccountInfo<'info>,
-//     pub token_program: AccountInfo<'info>,
-//     pub rent: AccountInfo<'info>,
-// }
 
 #[account]
 pub struct MyDojo {
