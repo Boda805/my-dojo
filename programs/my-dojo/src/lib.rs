@@ -1,14 +1,13 @@
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program::invoke;
-use anchor_spl::token;
-use anchor_spl::token::{MintTo, Token};
+use anchor_lang::{prelude::*};
+use anchor_spl::{token::{self, TokenAccount}};
 use mpl_token_metadata::instruction::{create_metadata_accounts_v2};
 
-
-declare_id!("vrQ91QxPGytFvwMbnjj1DRwMnauD1EQYRVFuYDbhz3J");
+declare_id!("Ak1zXQBNXUwe95PvEAaYpyMSDaN4uz6jShpdztuzFXoJ");
 
 #[program]
 pub mod my_dojo {
+    use anchor_lang::solana_program::program::invoke_signed;
+
     use super::*;
 
     pub fn add_dojo(
@@ -44,69 +43,66 @@ pub mod my_dojo {
 
     pub fn mint_black_belt(
         ctx: Context<MintBlackBelt>,
-        // creator_key: Pubkey,
-        uri: String,
-        name: String,
+        metadata_uri: String,
+        metadata_name: String,
+        mint_authority_pda_bump: u8,
     ) -> Result<()> {
-        msg!("Initializing Mint NFT");
-        let cpi_accounts = MintTo {
-            mint: ctx.accounts.mint.to_account_info(),
-            to: ctx.accounts.token_account.to_account_info(),
-            authority: ctx.accounts.payer.to_account_info(),
-        };
-        msg!("CPI Accounts Assigned");
-        let cpi_program = ctx.accounts.token_program.to_account_info();
-        msg!("CPI Program Assigned");
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-        msg!("CPI Context Assigned");
-        token::mint_to(cpi_ctx, 1)?;
-        msg!("Token Minted !!!");
-        let account_info = vec![
-            ctx.accounts.metadata.to_account_info(),
-            ctx.accounts.mint.to_account_info(),
-            ctx.accounts.mint_authority.to_account_info(),
-            ctx.accounts.payer.to_account_info(),
-            ctx.accounts.token_metadata_program.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
-            ctx.accounts.rent.to_account_info(),
-        ];
-        msg!("Account Info Assigned");
-        // let creator = vec![
-        //     mpl_token_metadata::state::Creator {
-        //         address: creator_key,
-        //         verified: false,
-        //         share: 100,
-        //     },
-        //     mpl_token_metadata::state::Creator {
-        //         address: ctx.accounts.mint_authority.key(),
-        //         verified: false,
-        //         share: 0,
-        //     },
-        // ];
-        // msg!("Creator Assigned");
-        let symbol = std::string::ToString::to_string("symb");
-        invoke(
+        token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                token::MintTo {
+                    mint: ctx.accounts.mint_account.to_account_info(),
+                    to: ctx.accounts.token_account.to_account_info(),
+                    authority: ctx.accounts.mint_authority.to_account_info(),
+                },
+                &[&[
+                    b"mint_authority_", 
+                    ctx.accounts.mint_account.key().as_ref(),
+                    &[mint_authority_pda_bump],
+                ]]
+            ),
+            1,
+        )?;
+        msg!("Token Minted!");
+
+        msg!("Creating metadata account...");
+        
+        invoke_signed(
             &create_metadata_accounts_v2(
                 ctx.accounts.token_metadata_program.key(),
-                ctx.accounts.metadata.key(),
-                ctx.accounts.mint.key(),
+                ctx.accounts.metadata_account.key(),
+                ctx.accounts.mint_account.key(), 
+                ctx.accounts.mint_authority.key(), 
+                ctx.accounts.payer.key(),  
                 ctx.accounts.mint_authority.key(),
-                ctx.accounts.payer.key(),
-                ctx.accounts.payer.key(),
-                name + " - Black Belt",
-                symbol,
-                uri,
-                None,
-                1,
-                true,
-                false,
-                None,
+                metadata_name,
+                String::from("BELT"),
+                metadata_uri, 
+                None, 
+                0,                           
+                true,     
+                false,   
+                None,   
                 None,
             ),
-            account_info.as_slice(),
+            &[
+                ctx.accounts.metadata_account.to_account_info(),
+                ctx.accounts.mint_account.to_account_info(),
+                ctx.accounts.mint_authority.to_account_info(),
+                ctx.accounts.payer.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_metadata_program.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+                ctx.accounts.rent.to_account_info(),
+            ],
+            &[&[
+                b"mint_authority_", 
+                ctx.accounts.mint_account.key().as_ref(),
+                &[mint_authority_pda_bump],
+            ]]
         )?;
-        msg!("Metadata Account Created");
+
+        msg!("Token mint created successfully.");
 
         Ok(())
     }
@@ -134,28 +130,35 @@ pub struct AddDojo<'info> {
 
 #[derive(Accounts)]
 pub struct MintBlackBelt<'info> {
+    /// CHECK: We're about to create this with Metaplex
     #[account(mut)]
-    pub mint_authority: Signer<'info>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub metadata_account: UncheckedAccount<'info>,
     #[account(mut)]
-    pub mint: UncheckedAccount<'info>,
-    // #[account(mut)]
-    pub token_program: Program<'info, Token>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub mint_account: Account<'info, token::Mint>,
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 32,
+        seeds = [
+            b"mint_authority_", 
+            mint_account.key().as_ref(),
+        ],
+        bump
+    )]
+    pub mint_authority: Account<'info, MintAuthorityPda>,
     #[account(mut)]
-    pub metadata: UncheckedAccount<'info>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub payer: Signer<'info>,
     #[account(mut)]
-    pub token_account: UncheckedAccount<'info>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    pub token_metadata_program: UncheckedAccount<'info>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    #[account(mut)]
-    pub payer: AccountInfo<'info>,
+    pub token_account: Account<'info, TokenAccount>,
+    pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    pub rent: AccountInfo<'info>,
+    pub token_program: Program<'info, token::Token>,
+    /// CHECK: Metaplex will check this
+    pub token_metadata_program: UncheckedAccount<'info>,
 }
+
+#[account]
+pub struct MintAuthorityPda {}
 
 #[account]
 pub struct MyDojo {

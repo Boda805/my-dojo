@@ -2,7 +2,7 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-my_dojo = "vrQ91QxPGytFvwMbnjj1DRwMnauD1EQYRVFuYDbhz3J"
+my_dojo = "Ak1zXQBNXUwe95PvEAaYpyMSDaN4uz6jShpdztuzFXoJ"
 
 [registry]
 url = "https://api.apr.dev"
