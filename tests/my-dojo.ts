@@ -2,11 +2,9 @@ import * as anchor from '@project-serum/anchor';
 import * as splToken from "@solana/spl-token";
 
 import { Program, Wallet } from '@project-serum/anchor';
-import { Transaction } from '@solana/web3.js';
+import { Transaction, PublicKey } from '@solana/web3.js';
 import { MyDojo } from '../target/types/my_dojo';
 import { expect } from 'chai';
-
-import { AuthorityType } from '@solana/spl-token';
 
 describe('my_dojo', async() => {
   const provider = anchor.AnchorProvider.env();
@@ -28,10 +26,9 @@ describe('my_dojo', async() => {
   let nftTokenAccount;
   let mintAuthorityPda;
   let mintAuthorityPdaBump;
+  let myDojoPda
 
   before(async() => {
- 
-
     // Mint Address
     beltMint = await splToken.createMint(
       provider.connection,
@@ -57,7 +54,7 @@ describe('my_dojo', async() => {
       .add(splToken.createSetAuthorityInstruction(
         beltMint,
         wallet.publicKey,
-        AuthorityType.MintTokens,
+        splToken.AuthorityType.MintTokens,
         mintAuthorityPda
     ));
     await anchor.web3.sendAndConfirmTransaction(
@@ -88,28 +85,29 @@ describe('my_dojo', async() => {
      TOKEN_METADATA_PROGRAM_ID
     ))[0];
     console.log("Metadata Address: ", metadataAddress.toString());
+
+    [myDojoPda] = await PublicKey
+      .findProgramAddress(
+        [
+          anchor.utils.bytes.utf8.encode("my-dojo"),
+          provider.wallet.publicKey.toBuffer()
+        ],
+        program.programId
+      );
+    console.log("My dojo pda: ", myDojoPda)
   });
   
-  // it('Add a dojo', async () => {
-  //   const [myDojoPDA, _] = await PublicKey
-  //     .findProgramAddress(
-  //       [
-  //         anchor.utils.bytes.utf8.encode("my-dojo"),
-  //         provider.wallet.publicKey.toBuffer()
-  //       ],
-  //       program.programId
-  //     );
+  it('Add a dojo', async () => {
+    await program.methods
+      .addDojo("Top Tier Gym", "USA", "Best gym in the states, owned by John Smith")
+      .accounts({
+        dojoOwner: provider.wallet.publicKey,
+        myDojo: myDojoPda,
+        // systemProgram: anchor.web3.SystemProgram.programId,
+      }).rpc();
 
-  //   await program.methods
-  //     .addDojo("Top Tier Gym", "USA", "Best gym in the states")
-  //     .accounts({
-  //       dojoOwner: provider.wallet.publicKey,
-  //       myDojo: myDojoPDA,
-  //       // systemProgram: anchor.web3.SystemProgram.programId,
-  //     }).rpc();
-
-  //   expect((await program.account.myDojo.fetch(myDojoPDA)).name).to.equal("Top Tier Gym");
-  // });
+    expect((await program.account.myDojo.fetch(myDojoPda)).name).to.equal("Top Tier Gym");
+  });
 
   it('Mint a black belt for dojo owner', async () => {
     const tx = await program.methods.mintBlackBelt(
@@ -123,6 +121,7 @@ describe('my_dojo', async() => {
         mintAuthority: mintAuthorityPda,
         payer: wallet.publicKey,
         tokenAccount: nftTokenAccount,
+        myDojo: myDojoPda,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,

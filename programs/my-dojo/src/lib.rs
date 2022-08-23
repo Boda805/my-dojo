@@ -2,6 +2,9 @@ use anchor_lang::{prelude::*};
 use anchor_spl::{token::{self, TokenAccount}};
 use mpl_token_metadata::instruction::{create_metadata_accounts_v2};
 
+use crate::error::ErrorCode;
+pub mod error;
+
 declare_id!("Ak1zXQBNXUwe95PvEAaYpyMSDaN4uz6jShpdztuzFXoJ");
 
 #[program]
@@ -24,6 +27,7 @@ pub mod my_dojo {
         my_dojo.name = name;
         my_dojo.location = location;
         my_dojo.description = description;
+        my_dojo.owner = ctx.accounts.dojo_owner.key();
 
         /*
         Causing "Error: failed to send transaction: Transaction simulation
@@ -47,6 +51,12 @@ pub mod my_dojo {
         metadata_name: String,
         mint_authority_pda_bump: u8,
     ) -> Result<()> {
+        let my_dojo = &ctx.accounts.my_dojo;
+
+        if ctx.accounts.payer.key() != my_dojo.owner {
+            return Err(ErrorCode::NotDojoOwner.into())
+        }
+
         token::mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -114,13 +124,22 @@ pub struct AddDojo<'info> {
     #[account(mut)]
     dojo_owner: Signer<'info>,
     /*
-    space: 8 discriminator + 4 name length + 200 name + 4 location length +
-           200 location + 4 description length + 200 description + 1 bump
+    space: 8    discriminator 
+           4    name length
+           200  name
+           4    location length
+           200  location
+           4    description length
+           200  description
+           32   owner address
+        +  1    bump
+           --------------------
+           653  bytes
     */
     #[account(
         init,
         payer = dojo_owner,
-        space = 8 + 4 + 200 + 4 + 200 + 4 + 200 + 1,
+        space = 8 + 4 + 200 + 4 + 200 + 4 + 200 + 32 + 1,
         seeds = [b"my-dojo", dojo_owner.key().as_ref()], 
         bump
     )]
@@ -150,6 +169,8 @@ pub struct MintBlackBelt<'info> {
     pub payer: Signer<'info>,
     #[account(mut)]
     pub token_account: Account<'info, TokenAccount>,
+    #[account()]
+    pub my_dojo: Account<'info, MyDojo>,
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, token::Token>,
@@ -165,5 +186,6 @@ pub struct MyDojo {
     name: String,
     location: String,
     description: String,
+    owner: Pubkey,
     bump: u8,
 }
