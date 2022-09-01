@@ -20,10 +20,17 @@ pub mod my_dojo {
         description: String,
     ) -> Result<()> {
         let my_dojo = &mut ctx.accounts.my_dojo;
-        // if name.as_bytes().len() > 200 {
-        //     // proper error handling omitted for brevity
-        //     panic!();
-        // }
+
+        if name.as_bytes().len() > 200 {
+            return Err(ErrorCode::NameTooLong.into())
+        }
+        if location.as_bytes().len() > 200 {
+            return Err(ErrorCode::LocationTooLong.into())
+        }
+        if description.as_bytes().len() > 200 {
+            return Err(ErrorCode::DescriptionTooLong.into())
+        }
+        
         my_dojo.name = name;
         my_dojo.location = location;
         my_dojo.description = description;
@@ -124,17 +131,17 @@ pub struct AddDojo<'info> {
     #[account(mut)]
     dojo_owner: Signer<'info>,
     /*
-    space: 8    discriminator 
-           4    name length
+    space:   8  discriminator 
+             4  name length
            200  name
-           4    location length
+             4  location length
            200  location
-           4    description length
+             4  description length
            200  description
-           32   owner address
-        +  1    bump
-           --------------------
-           653  bytes
+            32  owner address
+        +    1  bump
+        ---------------------------
+        =  653  bytes
     */
     #[account(
         init,
