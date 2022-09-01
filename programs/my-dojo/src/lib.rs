@@ -1,14 +1,18 @@
-use anchor_lang::{prelude::*};
-use anchor_spl::{token::{self, TokenAccount}};
-use mpl_token_metadata::instruction::{create_metadata_accounts_v2};
-
 use crate::error::ErrorCode;
+use crate::context::*;
+
+use anchor_lang::prelude::*;
+use anchor_spl::token;
+
+pub mod context;
 pub mod error;
+pub mod state;
 
 declare_id!("Ak1zXQBNXUwe95PvEAaYpyMSDaN4uz6jShpdztuzFXoJ");
 
 #[program]
 pub mod my_dojo {
+    use mpl_token_metadata::instruction::{create_metadata_accounts_v2};
     use anchor_lang::solana_program::program::invoke_signed;
 
     use super::*;
@@ -30,7 +34,7 @@ pub mod my_dojo {
         if description.as_bytes().len() > 200 {
             return Err(ErrorCode::DescriptionTooLong.into())
         }
-        
+
         my_dojo.name = name;
         my_dojo.location = location;
         my_dojo.description = description;
@@ -123,76 +127,7 @@ pub mod my_dojo {
 
         Ok(())
     }
-    
 }
 
-#[derive(Accounts)]
-pub struct AddDojo<'info> {
-    #[account(mut)]
-    dojo_owner: Signer<'info>,
-    /*
-    space:   8  discriminator 
-             4  name length
-           200  name
-             4  location length
-           200  location
-             4  description length
-           200  description
-            32  owner address
-        +    1  bump
-        ---------------------------
-        =  653  bytes
-    */
-    #[account(
-        init,
-        payer = dojo_owner,
-        space = 8 + 4 + 200 + 4 + 200 + 4 + 200 + 32 + 1,
-        seeds = [b"my-dojo", dojo_owner.key().as_ref()], 
-        bump
-    )]
-    pub my_dojo: Account<'info, MyDojo>,
-    pub system_program: Program<'info, System>,
-}
 
-#[derive(Accounts)]
-pub struct MintBlackBelt<'info> {
-    /// CHECK: We're about to create this with Metaplex
-    #[account(mut)]
-    pub metadata_account: UncheckedAccount<'info>,
-    #[account(mut)]
-    pub mint_account: Account<'info, token::Mint>,
-    #[account(
-        init, 
-        payer = payer,
-        space = 8 + 32,
-        seeds = [
-            b"mint_authority_", 
-            mint_account.key().as_ref(),
-        ],
-        bump
-    )]
-    pub mint_authority: Account<'info, MintAuthorityPda>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    #[account(mut)]
-    pub token_account: Account<'info, TokenAccount>,
-    #[account()]
-    pub my_dojo: Account<'info, MyDojo>,
-    pub rent: Sysvar<'info, Rent>,
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, token::Token>,
-    /// CHECK: Metaplex will check this
-    pub token_metadata_program: UncheckedAccount<'info>,
-}
 
-#[account]
-pub struct MintAuthorityPda {}
-
-#[account]
-pub struct MyDojo {
-    name: String,
-    location: String,
-    description: String,
-    owner: Pubkey,
-    bump: u8,
-}
