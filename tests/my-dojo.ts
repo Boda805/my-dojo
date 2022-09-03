@@ -96,22 +96,20 @@ describe('my_dojo', async() => {
       );
     console.log("My dojo pda: ", myDojoPda)
   });
-  
-  it('Add a dojo', async () => {
-    await program.methods
-      .addDojo("Top Tier Gym", "USA", "Best gym in the states, owned by John Smith")
-      .accounts({
-        dojoOwner: provider.wallet.publicKey,
-        myDojo: myDojoPda,
-        // systemProgram: anchor.web3.SystemProgram.programId,
-      }).rpc();
 
-    expect((await program.account.myDojo.fetch(myDojoPda)).name).to.equal("Top Tier Gym");
-  });
+  // Only needed on init
+  // it('Add a dojo', async () => {
+  //   await program.methods
+  //     .addDojo("Top Tier Gym", "USA", "Best gym in the states, owned by John Smith")
+  //     .accounts({
+  //       dojoOwner: provider.wallet.publicKey,
+  //       myDojo: myDojoPda,
+  //     }).rpc();
+  //   expect((await program.account.myDojo.fetch(myDojoPda)).name).to.equal("Top Tier Gym");
+  // });
 
   it('Mint a black belt for dojo owner', async () => {
     const tx = await program.methods.mintBlackBelt(
-      "https://arweave.net/y5e5DJsiwH0s_ayfMwYk-SnrZtVZzHLQDSTZ5dNRUHA",
       "John Smithington",
       mintAuthorityPdaBump)
       .accounts(

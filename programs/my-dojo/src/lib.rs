@@ -15,6 +15,8 @@ pub mod my_dojo {
     use mpl_token_metadata::instruction::{create_metadata_accounts_v2};
     use anchor_lang::solana_program::program::invoke_signed;
 
+    use crate::state::BLACK_BELT_URI;
+
     use super::*;
 
     pub fn add_dojo(
@@ -58,7 +60,6 @@ pub mod my_dojo {
 
     pub fn mint_black_belt(
         ctx: Context<MintBlackBelt>,
-        metadata_uri: String,
         metadata_name: String,
         mint_authority_pda_bump: u8,
     ) -> Result<()> {
@@ -98,7 +99,7 @@ pub mod my_dojo {
                 ctx.accounts.mint_authority.key(),
                 metadata_name,
                 String::from("BELT"),
-                metadata_uri, 
+                BLACK_BELT_URI.to_string(), 
                 None, 
                 0,                           
                 true,     
